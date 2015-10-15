@@ -230,9 +230,11 @@ function $ViewDirective(   $state,   $injector,   $uiViewScroll,   $interpolate)
           //TODO: attache back to parent scope
           
           renderer.enter(cached.element, $element, function onUiViewRestored() {
-            cached.scope.$apply(function(){
-              cached.scope.$emit('$viewRestored', name);
-            });
+            cached.scope.$emit('$viewRestored', name);
+            // content only changes for v1.2 if $apply is called, for v1.4 - error is shown in console and event not delivered
+            if(angular.version.minor <= 2){
+              cached.scope.$apply();
+            }
           });
           
           currentEl = cached.element;
@@ -292,11 +294,13 @@ function $ViewDirective(   $state,   $injector,   $uiViewScroll,   $interpolate)
                   viewCache[name][$state.$current.name] = cached;
                   cached.scope.$persistent = true;
                   // needed?
-                  cached.scope.$apply(function(){
-                    cached.scope.$emit('$viewCached', function(){
-                      delete viewCache[name][cached.stateName];
-                    });
+                  cached.scope.$emit('$viewCached', function(){
+                    delete viewCache[name][cached.stateName];
                   });
+                  // content only changes for v1.2 if $apply is called, for v1.4 - error is shown in console and event not delivered
+                  if(angular.version.minor <= 2){
+                    cached.scope.$apply();
+                  }
               }
             });
             cleanupLastView();
