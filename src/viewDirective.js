@@ -170,7 +170,8 @@ function $ViewDirective(   $state,   $injector,   $uiViewScroll,   $interpolate)
 
     return statics();
   }
-
+	var viewCache = {};
+		
   var directive = {
     restrict: 'ECA',
     terminal: true,
@@ -188,34 +189,71 @@ function $ViewDirective(   $state,   $injector,   $uiViewScroll,   $interpolate)
         });
 
         updateView(true);
-
+        
         function cleanupLastView() {
+          var persistent = currentScope && currentScope.$persistent;
           if (previousEl) {
             previousEl.remove();
             previousEl = null;
           }
-
-          if (currentScope) {
+          
+          if (currentScope && !persistent) {
             currentScope.$destroy();
             currentScope = null;
           }
 
           if (currentEl) {
-            renderer.leave(currentEl, function() {
-              previousEl = null;
-            });
-
+            if (persistent) {
+              var el = currentEl;
+              // only unlink element, do not remove data
+              el.remove = function(){
+                var parent = el[0].parentNode;
+                if (parent) parent.removeChild(el[0]);
+              };
+              renderer.leave(el, function(){
+                previousEl = null;
+                // restore remove functionality 
+                delete el.remove;
+              });
+            } else {
+              renderer.leave(currentEl, function() {
+                previousEl = null;
+              });
+            }
             previousEl = currentEl;
             currentEl = null;
           }
         }
-
+        
+        function restoreFromCache(cached){
+          
+          //TODO: attache back to parent scope
+          
+          renderer.enter(cached.element, $element, function onUiViewRestored() {
+            cached.scope.$apply(function(){
+              cached.scope.$emit('$viewRestored', name);
+            });
+          });
+          
+          currentEl = cached.element;
+          currentScope = cached.scope;
+        }
+        
         function updateView(firstTime) {
           var newScope,
               name            = getUiViewName(scope, attrs, $element, $interpolate),
-              previousLocals  = name && $state.$current && $state.$current.locals[name];
+              previousLocals  = name && $state.$current && $state.$current.locals[name], 
+              cached;
 
           if (!firstTime && previousLocals === latestLocals) return; // nothing to do
+					
+          cached = $state.$current.persistent && viewCache[name] && viewCache[name][$state.$current.name];
+          if (cached) {
+              cleanupLastView();
+              restoreFromCache(cached);
+              return;
+          }
+						
           newScope = scope.$new();
           latestLocals = $state.$current.locals[name];
 
@@ -241,6 +279,24 @@ function $ViewDirective(   $state,   $injector,   $uiViewScroll,   $interpolate)
 
               if (angular.isDefined(autoScrollExp) && !autoScrollExp || scope.$eval(autoScrollExp)) {
                 $uiViewScroll(clone);
+              }
+              if($state.$current.persistent){
+                  if(!viewCache[name]){
+                    viewCache[name] = {};		
+                  }
+                  cached = {
+                    stateName: $state.$current.name,
+                    element: clone,
+                    scope: currentScope
+                  };
+                  viewCache[name][$state.$current.name] = cached;
+                  cached.scope.$persistent = true;
+                  // needed?
+                  cached.scope.$apply(function(){
+                    cached.scope.$emit('$viewCached', function(){
+                      delete viewCache[name][cached.stateName];
+                    });
+                  });
               }
             });
             cleanupLastView();

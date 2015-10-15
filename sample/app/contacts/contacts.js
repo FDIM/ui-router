@@ -62,7 +62,6 @@ angular.module('uiRouterSample.contacts', [
         // Using a '.' within a state name declares a child within a parent.
         // So you have a new state 'list' within the parent 'contacts' state.
         .state('contacts.list', {
-
           // Using an empty url means that this child state will become active
           // when its parent's url is navigated to. Urls of child states are
           // automatically appended to the urls of their parent. So this state's
