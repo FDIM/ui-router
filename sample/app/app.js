@@ -63,18 +63,12 @@ angular.module('uiRouterSample', [
             $scope.restored = false;
             $scope.cleanCache = angular.noop;
             $scope.$on('$viewRestored', function(evt, name){
-                if($scope.invalidated){
-                  $scope.restored = false;
-                  $scope.invalidated = false;
-                  $scope.date = new Date();
-                }else{
-                  $scope.restored = true;
-                  var expires = new Date();
-                  expires.setSeconds(expires.getSeconds()-10);
-                  if($scope.date < expires){
-                    $scope.invalidated = true;
-                    $scope.cleanCache();
-                  }
+                $scope.restored = true;
+                var expires = new Date();
+                expires.setSeconds(expires.getSeconds()-10);
+                if($scope.date < expires){
+                  $scope.invalidated = true;
+                  $scope.cleanCache();
                 }
             });
             $scope.$on('$viewCached', function(evt, cacheClean){
