@@ -67,7 +67,7 @@ angular.module('uiRouterSample.contacts', [
           // automatically appended to the urls of their parent. So this state's
           // url is '/contacts' (because '/contacts' + '').
           url: '',
-
+          persistent:true,
           // IMPORTANT: Now we have a state that is not a top level state. Its
           // template will be inserted into the ui-view within this state's
           // parent's template; so the ui-view within contacts.html. This is the

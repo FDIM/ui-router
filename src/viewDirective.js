@@ -170,8 +170,7 @@ function $ViewDirective(   $state,   $injector,   $uiViewScroll,   $interpolate)
 
     return statics();
   }
-	var viewCache = {};
-		
+	
   var directive = {
     restrict: 'ECA',
     terminal: true,
@@ -225,17 +224,13 @@ function $ViewDirective(   $state,   $injector,   $uiViewScroll,   $interpolate)
           }
         }
         
-        function restoreFromCache(cached){
+        function restoreFromCache(name, cached){
           
           //TODO: attach scope back to parent scope
           
           renderer.enter(cached.element, $element);
           // callback above is called when transition ends, which is too late to restore the view.
           cached.scope.$emit('$viewRestored', name);
-          // content only changes for v1.2 if $apply is called, for v1.4 - error is shown in console and event not delivered
-          if(angular.version.major == 1 && angular.version.minor <= 2){
-            cached.scope.$apply();
-          }
           
           currentEl = cached.element;
           currentScope = cached.scope;
@@ -244,15 +239,14 @@ function $ViewDirective(   $state,   $injector,   $uiViewScroll,   $interpolate)
         function updateView(firstTime) {
           var newScope,
               name            = getUiViewName(scope, attrs, $element, $interpolate),
-              previousLocals  = name && $state.$current && $state.$current.locals[name], 
-              cached;
+              previousLocals  = name && $state.$current && $state.$current.locals[name];
 
           if (!firstTime && previousLocals === latestLocals) return; // nothing to do
 					
-          cached = $state.$current.persistent && viewCache[name] && viewCache[name][$state.$current.name];
+          var cached = $state.$current.persistent && $state.$current.viewCache && $state.$current.viewCache[name];
           if (cached) {
               cleanupLastView();
-              restoreFromCache(cached);
+              restoreFromCache(name, cached);
               return;
           }
 						
@@ -274,6 +268,7 @@ function $ViewDirective(   $state,   $injector,   $uiViewScroll,   $interpolate)
           newScope.$emit('$viewContentLoading', name);
 
           var clone = $transclude(newScope, function(clone) {
+            var cached;
             renderer.enter(clone, $element, function onUiViewEnter() {
               if(currentScope) {
                 currentScope.$emit('$viewContentAnimationEnded');
@@ -282,27 +277,28 @@ function $ViewDirective(   $state,   $injector,   $uiViewScroll,   $interpolate)
               if (angular.isDefined(autoScrollExp) && !autoScrollExp || scope.$eval(autoScrollExp)) {
                 $uiViewScroll(clone);
               }
-              if($state.$current.persistent){
-                  if(!viewCache[name]){
-                    viewCache[name] = {};		
-                  }
-                  cached = {
-                    stateName: $state.$current.name,
-                    element: clone,
-                    scope: currentScope
-                  };
-                  viewCache[name][$state.$current.name] = cached;
-                  cached.scope.$persistent = true;
-                  // needed?
-                  cached.scope.$emit('$viewCached', function(){
-                    delete viewCache[name][cached.stateName];
-                  });
-                  // content only changes for v1.2 if $apply is called, for v1.4 - error is shown in console and event not delivered
-                  if(angular.version.minor <= 2){
-                    cached.scope.$apply();
-                  }
+              // when controller is compiled
+              if(cached){
+                // needed?
+                var tmp = $state.$current;
+                cached.scope.$emit('$viewCached', function(){
+                  delete tmp.viewCache;
+                });
               }
             });
+            // caching of persistent states
+            if ($state.$current.persistent) {
+              if (!$state.$current.viewCache) {
+                $state.$current.viewCache = {};		
+              }
+              cached = {
+                element: clone,
+                scope: newScope
+              };
+              $state.$current.viewCache[name] = cached;
+              cached.scope.$persistent = true;
+              
+            }
             cleanupLastView();
           });
 
