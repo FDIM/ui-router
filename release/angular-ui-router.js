@@ -1,6 +1,6 @@
 /**
  * State-based routing for AngularJS
- * @version v0.2.15-dev-2015-10-15
+ * @version v0.2.15-dev-2015-10-25
  * @link http://angular-ui.github.com/
  * @license MIT License, http://www.opensource.org/licenses/MIT
  */
@@ -3968,15 +3968,15 @@ function $ViewDirective(   $state,   $injector,   $uiViewScroll,   $interpolate)
         
         function restoreFromCache(cached){
           
-          //TODO: attache back to parent scope
+          //TODO: attach scope back to parent scope
           
-          renderer.enter(cached.element, $element, function onUiViewRestored() {
-            cached.scope.$emit('$viewRestored', name);
-            // content only changes for v1.2 if $apply is called, for v1.4 - error is shown in console and event not delivered
-            if(angular.version.minor <= 2){
-              cached.scope.$apply();
-            }
-          });
+          renderer.enter(cached.element, $element);
+          // callback above is called when transition ends, which is too late to restore the view.
+          cached.scope.$emit('$viewRestored', name);
+          // content only changes for v1.2 if $apply is called, for v1.4 - error is shown in console and event not delivered
+          if(angular.version.major == 1 && angular.version.minor <= 2){
+            cached.scope.$apply();
+          }
           
           currentEl = cached.element;
           currentScope = cached.scope;
