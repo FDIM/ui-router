@@ -242,7 +242,9 @@ function $ViewDirective(   $state,   $injector,   $uiViewScroll,   $interpolate)
               previousLocals  = name && $state.$current && $state.$current.locals[name];
 
           if (!firstTime && previousLocals === latestLocals) return; // nothing to do
-					
+          
+          latestLocals = $state.$current.locals[name];
+
           var cached = $state.$current.persistent && $state.$current.viewCache && $state.$current.viewCache[name];
           if (cached) {
               cleanupLastView();
@@ -251,8 +253,7 @@ function $ViewDirective(   $state,   $injector,   $uiViewScroll,   $interpolate)
           }
 						
           newScope = scope.$new();
-          latestLocals = $state.$current.locals[name];
-
+          
           /**
            * @ngdoc event
            * @name ui.router.state.directive:ui-view#$viewContentLoading
@@ -270,7 +271,7 @@ function $ViewDirective(   $state,   $injector,   $uiViewScroll,   $interpolate)
           var clone = $transclude(newScope, function(clone) {
             var cached;
             renderer.enter(clone, $element, function onUiViewEnter() {
-              if(currentScope) {
+              if (currentScope) {
                 currentScope.$emit('$viewContentAnimationEnded');
               }
 
@@ -278,7 +279,7 @@ function $ViewDirective(   $state,   $injector,   $uiViewScroll,   $interpolate)
                 $uiViewScroll(clone);
               }
               // when controller is compiled
-              if(cached){
+              if (cached) {
                 // needed?
                 var tmp = $state.$current;
                 cached.scope.$emit('$viewCached', function(){
@@ -288,6 +289,7 @@ function $ViewDirective(   $state,   $injector,   $uiViewScroll,   $interpolate)
             });
             // caching of persistent states
             if ($state.$current.persistent) {
+              //TODO: figure out what to do with nested views, behavior is undefined now
               if (!$state.$current.viewCache) {
                 $state.$current.viewCache = {};		
               }
@@ -297,7 +299,6 @@ function $ViewDirective(   $state,   $injector,   $uiViewScroll,   $interpolate)
               };
               $state.$current.viewCache[name] = cached;
               cached.scope.$persistent = true;
-              
             }
             cleanupLastView();
           });
