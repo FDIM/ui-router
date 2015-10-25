@@ -232,10 +232,10 @@ function $ViewDirective(   $state,   $injector,   $uiViewScroll,   $interpolate)
           renderer.enter(cached.element, $element);
           // callback above is called when transition ends, which is too late to restore the view.
           cached.scope.$emit('$viewRestored', name);
-      	  // content only changes for v1.2 if $apply is called, for v1.4 - error is shown in console and event not delivered
-      	  if(angular.version.major == 1 && angular.version.minor <= 2){
-      	 	  cached.scope.$apply();
-      	  }
+          // content only changes for v1.2 if $apply is called, for v1.4 - error is shown in console and event not delivered
+          if(angular.version.major == 1 && angular.version.minor <= 2){
+            cached.scope.$apply();
+          }
           
           currentEl = cached.element;
           currentScope = cached.scope;
