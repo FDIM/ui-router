@@ -1,6 +1,6 @@
 /**
  * State-based routing for AngularJS
- * @version v0.2.15-dev-2015-10-25
+ * @version v0.2.15-dev-2016-02-08
  * @link http://angular-ui.github.com/
  * @license MIT License, http://www.opensource.org/licenses/MIT
  */
@@ -3767,26 +3767,26 @@ angular.module('ui.router.state').provider('$uiViewScroll', $ViewScrollProvider)
  * functionality, call `$uiViewScrollProvider.useAnchorScroll()`.*
  *
  * @param {string=} onload Expression to evaluate whenever the view updates.
- * 
+ *
  * @example
- * A view can be unnamed or named. 
+ * A view can be unnamed or named.
  * <pre>
  * <!-- Unnamed -->
- * <div ui-view></div> 
- * 
+ * <div ui-view></div>
+ *
  * <!-- Named -->
  * <div ui-view="viewName"></div>
  * </pre>
  *
- * You can only have one unnamed view within any template (or root html). If you are only using a 
+ * You can only have one unnamed view within any template (or root html). If you are only using a
  * single view and it is unnamed then you can populate it like so:
  * <pre>
- * <div ui-view></div> 
+ * <div ui-view></div>
  * $stateProvider.state("home", {
  *   template: "<h1>HELLO!</h1>"
  * })
  * </pre>
- * 
+ *
  * The above is a convenient shortcut equivalent to specifying your view explicitly with the {@link ui.router.state.$stateProvider#views `views`}
  * config property, by name, in this case an empty name:
  * <pre>
@@ -3795,33 +3795,33 @@ angular.module('ui.router.state').provider('$uiViewScroll', $ViewScrollProvider)
  *     "": {
  *       template: "<h1>HELLO!</h1>"
  *     }
- *   }    
+ *   }
  * })
  * </pre>
- * 
- * But typically you'll only use the views property if you name your view or have more than one view 
- * in the same template. There's not really a compelling reason to name a view if its the only one, 
+ *
+ * But typically you'll only use the views property if you name your view or have more than one view
+ * in the same template. There's not really a compelling reason to name a view if its the only one,
  * but you could if you wanted, like so:
  * <pre>
  * <div ui-view="main"></div>
- * </pre> 
+ * </pre>
  * <pre>
  * $stateProvider.state("home", {
  *   views: {
  *     "main": {
  *       template: "<h1>HELLO!</h1>"
  *     }
- *   }    
+ *   }
  * })
  * </pre>
- * 
+ *
  * Really though, you'll use views to set up multiple views:
  * <pre>
  * <div ui-view></div>
- * <div ui-view="chart"></div> 
- * <div ui-view="data"></div> 
+ * <div ui-view="chart"></div>
+ * <div ui-view="data"></div>
  * </pre>
- * 
+ *
  * <pre>
  * $stateProvider.state("home", {
  *   views: {
@@ -3834,7 +3834,7 @@ angular.module('ui.router.state').provider('$uiViewScroll', $ViewScrollProvider)
  *     "data": {
  *       template: "<data_thing/>"
  *     }
- *   }    
+ *   }
  * })
  * </pre>
  *
@@ -3852,8 +3852,8 @@ angular.module('ui.router.state').provider('$uiViewScroll', $ViewScrollProvider)
  * <ui-view autoscroll='scopeVariable'/>
  * </pre>
  */
-$ViewDirective.$inject = ['$state', '$injector', '$uiViewScroll', '$interpolate'];
-function $ViewDirective(   $state,   $injector,   $uiViewScroll,   $interpolate) {
+$ViewDirective.$inject = ['$state', '$injector', '$uiViewScroll', '$interpolate', '$document'];
+function $ViewDirective(   $state,   $injector,   $uiViewScroll,   $interpolate,   $document) {
 
   function getService() {
     return ($injector.has) ? function(service) {
@@ -3911,7 +3911,7 @@ function $ViewDirective(   $state,   $injector,   $uiViewScroll,   $interpolate)
 
     return statics();
   }
-	
+
   var directive = {
     restrict: 'ECA',
     terminal: true,
@@ -3919,7 +3919,7 @@ function $ViewDirective(   $state,   $injector,   $uiViewScroll,   $interpolate)
     transclude: 'element',
     compile: function (tElement, tAttrs, $transclude) {
       return function (scope, $element, attrs) {
-        var previousEl, currentEl, currentScope, latestLocals,
+        var previousEl, currentEl, currentScope, latestLocals, viewCacheElement,
             onloadExp     = attrs.onload || '',
             autoScrollExp = attrs.autoscroll,
             renderer      = getRenderer(attrs, scope);
@@ -3927,16 +3927,25 @@ function $ViewDirective(   $state,   $injector,   $uiViewScroll,   $interpolate)
         scope.$on('$stateChangeSuccess', function() {
           updateView(false);
         });
-
+        scope.$on('$destroy', function() {
+          if(viewCacheElement){
+            viewCacheElement.remove();
+            viewCacheElement = null;
+          }
+        });
         updateView(true);
-        
+        //setup tmp element for all the views that are suspended
+        viewCacheElement = angular.element('<div>');
+        viewCacheElement.css('display','none');
+        $document.find('body').append(viewCacheElement);
+
         function cleanupLastView() {
-          var persistent = currentScope && currentScope.$persistent;
+          var persistent = currentScope && currentScope.$persistent, oldScope = currentScope;
           if (previousEl) {
             previousEl.remove();
             previousEl = null;
           }
-          
+
           if (currentScope && !persistent) {
             currentScope.$destroy();
             currentScope = null;
@@ -3947,12 +3956,16 @@ function $ViewDirective(   $state,   $injector,   $uiViewScroll,   $interpolate)
               var el = currentEl;
               // only unlink element, do not remove data
               el.remove = function(){
-                var parent = el[0].parentNode;
-                if (parent) parent.removeChild(el[0]);
+                // var parent = el[0].parentNode;
+                // if (parent) parent.removeChild(el[0]);
+                viewCacheElement.append(el);
+                if(oldScope){
+                  oldScope.$emit('$viewSuspended');
+                }
               };
               renderer.leave(el, function(){
                 previousEl = null;
-                // restore remove functionality 
+                // restore remove functionality
                 delete el.remove;
               });
             } else {
@@ -3964,26 +3977,26 @@ function $ViewDirective(   $state,   $injector,   $uiViewScroll,   $interpolate)
             currentEl = null;
           }
         }
-        
+
         function restoreFromCache(name, cached){
-          
+
           //TODO: attach scope back to parent scope
-          
+
           renderer.enter(cached.element, $element);
           // callback above is called when transition ends, which is too late to restore the view.
           cached.scope.$emit('$viewRestored', name);
-          
+
           currentEl = cached.element;
           currentScope = cached.scope;
         }
-        
+
         function updateView(firstTime) {
           var newScope,
               name            = getUiViewName(scope, attrs, $element, $interpolate),
               previousLocals  = name && $state.$current && $state.$current.locals[name];
 
           if (!firstTime && previousLocals === latestLocals) return; // nothing to do
-          
+
           latestLocals = $state.$current.locals[name];
 
           var cached = $state.$current.persistent && $state.$current.viewCache && $state.$current.viewCache[name];
@@ -3992,9 +4005,9 @@ function $ViewDirective(   $state,   $injector,   $uiViewScroll,   $interpolate)
               restoreFromCache(name, cached);
               return;
           }
-						
+
           newScope = scope.$new();
-          
+
           /**
            * @ngdoc event
            * @name ui.router.state.directive:ui-view#$viewContentLoading
@@ -4032,7 +4045,7 @@ function $ViewDirective(   $state,   $injector,   $uiViewScroll,   $interpolate)
             if ($state.$current.persistent) {
               //TODO: figure out what to do with nested views, behavior is undefined now
               if (!$state.$current.viewCache) {
-                $state.$current.viewCache = {};		
+                $state.$current.viewCache = {};
               }
               cached = {
                 element: clone,
