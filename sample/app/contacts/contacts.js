@@ -1,7 +1,7 @@
 angular.module('uiRouterSample.contacts', [
   'ui.router'
 ])
-  
+
 .config(
   [          '$stateProvider', '$urlRouterProvider',
     function ($stateProvider,   $urlRouterProvider) {
@@ -63,7 +63,7 @@ angular.module('uiRouterSample.contacts', [
         // So you have a new state 'list' within the parent 'contacts' state.
         .state('contacts.list', {
           // is ok to enable this flag for leafnodes (view that doesnt have inner views)
-          persistent: true,
+          //persistent: true,
           // Using an empty url means that this child state will become active
           // when its parent's url is navigated to. Urls of child states are
           // automatically appended to the urls of their parent. So this state's
@@ -84,7 +84,7 @@ angular.module('uiRouterSample.contacts', [
         // You can have unlimited children within a state. Here is a second child
         // state within the 'contacts' parent state.
         .state('contacts.detail', {
-persistent: true,
+//persistent: true,
           // Urls can have parameters. They can be specified like :param or {param}.
           // If {} is used, then you can also specify a regex pattern that the param
           // must match. The regex is written after a colon (:). Note: Don't use capture

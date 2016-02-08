@@ -3,7 +3,7 @@ angular.module('uiRouterSample', [
   'uiRouterSample.contacts',
   'uiRouterSample.contacts.service',
   'uiRouterSample.utils.service',
-  'ui.router', 
+  'ui.router',
   'ngAnimate'
 ])
 
@@ -70,6 +70,9 @@ angular.module('uiRouterSample', [
                   $scope.invalidated = true;
                   $scope.cleanCache();
                 }
+            });
+            $scope.$on('$viewSuspended', function(){
+              console.info('suspended');
             });
             $scope.$on('$viewCached', function(evt, cacheClean){
               $scope.cleanCache = cacheClean;
